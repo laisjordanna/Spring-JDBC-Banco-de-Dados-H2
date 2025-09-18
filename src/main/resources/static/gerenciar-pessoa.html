@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+    <head>
+        <meta charset="UTF-8">
+        <title>CRUD Pessoas</title>
+        <link rel="stylesheet" href="/css/style.css">
+    </head>
+    <body>
+
+    <h1>Gerenciar Pessoas</h1>
+
+    <form id="formPessoa">
+        <input type="hidden" id="idPessoa"> <!-- usado para editar -->
+        <input type="text" id="nome" placeholder="Nome" required>
+        <input type="number" id="idade" placeholder="Idade" required>
+        <button type="submit">Salvar</button>
+    </form>
+
+    <input type="number" id="buscarId" placeholder="Digite o ID">
+    <button onclick="buscarPessoa()">Buscar</button>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nome</th>
+                <th>Idade</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody id="listaPessoas">
+        <!-- Lista será carregada aqui -->
+        </tbody>
+    </table>
+
+    <script>
+        const API_URL = "http://localhost:8081/pessoas"; // URL da sua API
+
+        // Função para carregar pessoas
+        async function carregarPessoas() {
+            const resposta = await fetch(API_URL);
+            const pessoas = await resposta.json();
+
+            const tbody = document.getElementById("listaPessoas");
+            tbody.innerHTML = "";
+
+            pessoas.forEach(pessoa => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td>${pessoa.id}</td>
+                    <td>${pessoa.nome}</td>
+                    <td>${pessoa.idade}</td>
+                    <td>
+                        <button class="edit" onclick="editarPessoa(${pessoa.id}, '${pessoa.nome}', ${pessoa.idade})">Editar</button>
+                        <button class="delete" onclick="removerPessoa(${pessoa.id})">Excluir</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Salvar ou atualizar pessoa
+        document.getElementById("formPessoa").addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            const id = document.getElementById("idPessoa").value;
+            const nome = document.getElementById("nome").value;
+            const idade = document.getElementById("idade").value;
+
+            console.log("ID: " + document.getElementById("idPessoa").value);
+            if (id) {
+                // Atualizar
+                await fetch(`${API_URL}/${id}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ nome, idade })
+                });
+            } else {
+                // Criar
+                await fetch(API_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ nome, idade })
+                });
+            }
+
+            document.getElementById("formPessoa").reset();
+            document.getElementById("idPessoa").value = "";
+            carregarPessoas();
+        });
+
+        // Editar pessoa
+        function editarPessoa(id, nome, idade) {
+            document.getElementById("idPessoa").value = id;
+            document.getElementById("nome").value = nome;
+            document.getElementById("idade").value = idade;
+        }
+
+        // Função para remover pessoa
+        async function removerPessoa(id) {
+            await fetch(`${API_URL}/${id}`, { method: "DELETE" });
+            carregarPessoas();
+        }
+
+        // Carregar ao abrir a página
+        carregarPessoas();
+
+        async function buscarPessoa() {
+        const id = document.getElementById("buscarId").value;
+        if (!id) {
+            alert("Informe um ID para buscar!");
+            return;
+        }
+
+        try {
+            const resposta = await fetch(`${API_URL}/${id}`);
+            if (!resposta.ok) {
+                alert("Pessoa não encontrada!");
+                return;
+            }
+
+            const pessoa = await resposta.json();
+
+            const tbody = document.getElementById("listaPessoas");
+            tbody.innerHTML = `
+                <tr>
+                    <td>${pessoa.id}</td>
+                    <td>${pessoa.nome}</td>
+                    <td>${pessoa.idade}</td>
+                    <td>
+                        <button class="edit" onclick="editarPessoa(${pessoa.id}, '${pessoa.nome}', ${pessoa.idade})">Editar</button>
+                        <button class="delete" onclick="removerPessoa(${pessoa.id})">Excluir</button>
+                    </td>
+                </tr>
+            `;
+        } catch (e) {
+            console.error("Erro ao buscar pessoa:", e);
+            alert("Erro ao buscar pessoa!");
+        }
+    }
+    </script>
+
+    </body>
+</html>
